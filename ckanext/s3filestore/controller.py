@@ -8,6 +8,7 @@ import ckan.logic as logic
 import ckan.lib.base as base
 import ckan.model as model
 import ckan.lib.uploader as uploader
+import ckan.lib.helpers as h
 from ckan.common import _, request, c, response
 
 from ckanext.s3filestore.uploader import S3Uploader
@@ -19,7 +20,6 @@ NotFound = logic.NotFound
 NotAuthorized = logic.NotAuthorized
 get_action = logic.get_action
 abort = base.abort
-redirect = base.redirect
 
 
 class S3Controller(base.BaseController):
@@ -69,7 +69,7 @@ class S3Controller(base.BaseController):
                                           id=id,
                                           resource_id=resource_id,
                                           filename=filename)
-                    redirect(url)
+                    h.redirect_to(url)
 
                 abort(404, _('Resource data not found'))
             contents = key.get_contents_as_string()
@@ -91,7 +91,7 @@ class S3Controller(base.BaseController):
 
         elif 'url' not in rsc:
             abort(404, _('No download is available'))
-        redirect(rsc['url'])
+        h.redirect_to(rsc['url'])
 
     def filesystem_resource_download(self, id, resource_id, filename=None):
         """
@@ -130,7 +130,7 @@ class S3Controller(base.BaseController):
             return app_iter
         elif 'url' not in rsc:
             abort(404, _('No download is available'))
-        redirect(rsc['url'])
+        h.redirect_to(rsc['url'])
 
     def uploaded_file_redirect(self, upload_to, filename):
         '''Redirect static file requests to their location on S3.'''
@@ -139,4 +139,4 @@ class S3Controller(base.BaseController):
         redirect_url = 'https://{bucket_name}.s3.amazonaws.com/{filepath}' \
             .format(bucket_name=config.get('ckanext.s3filestore.aws_bucket_name'),
                     filepath=filepath)
-        redirect(redirect_url)
+        h.redirect_to(redirect_url)
