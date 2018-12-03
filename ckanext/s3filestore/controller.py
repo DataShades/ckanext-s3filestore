@@ -29,8 +29,12 @@ class S3Controller(base.BaseController):
         Provide a download by either redirecting the user to the url stored or
         downloading the uploaded file from S3.
         '''
-        context = {'model': model, 'session': model.Session,
-                   'user': c.user or c.author, 'auth_user_obj': c.userobj}
+        context = {
+            'model': model,
+            'session': model.Session,
+            'user': c.user or c.author,
+            'auth_user_obj': c.userobj
+        }
 
         try:
             rsc = get_action('resource_show')(context, {'id': resource_id})
@@ -41,7 +45,9 @@ class S3Controller(base.BaseController):
             abort(401, _('Unauthorized to read resource %s') % id)
 
         url = rsc.get('url')
-        if rsc.get('url_type') == 'upload' or url.startswith(config.get('ckan.site_url')):
+        if rsc.get('url_type') == 'upload' or url.startswith(
+            config.get('ckan.site_url')
+        ):
             upload = uploader.get_resource_uploader(rsc)
             bucket_name = config.get('ckanext.s3filestore.aws_bucket_name')
             bucket = upload.get_s3_bucket(bucket_name)
@@ -55,20 +61,46 @@ class S3Controller(base.BaseController):
             except Exception as e:
                 raise e
 
+            # We may have filename encoded in old style, with hyphen
+            # instead of every space (new style stacks multiple
+            # hyphens into one, old style doesn't do so)
             if key is None:
-                log.warn('Key \'{0}\' not found in bucket \'{1}\''
-                         .format(key_path, bucket_name))
+                # extract `resource/{id}` part, because it's idempotent
+                _prefix = '/'.join(key_path.split('/')[:2])
+                _keys = bucket.get_all_keys(prefix=_prefix)
+                if _keys:
+                    key = _keys[0]
+                    log.warn((
+                        'Old-style key found: {}. For better'
+                        ' performance consider converting multiple'
+                        ' hyphens into single'
+                    ).format(key))
+
+            if key is None:
+                log.warn(
+                    'Key \'{0}\' not found in bucket \'{1}\''.format(
+                        key_path, bucket_name
+                    )
+                )
 
                 # attempt fallback
-                if config.get('ckanext.s3filestore.filesystem_download_fallback',
-                              False):
-                    log.info('Attempting filesystem fallback for resource {0}'
-                             .format(resource_id))
-                    url = toolkit.url_for(controller='ckanext.s3filestore.controller:S3Controller',
-                                          action='filesystem_resource_download',
-                                          id=id,
-                                          resource_id=resource_id,
-                                          filename=filename)
+                if config.get(
+                    'ckanext.s3filestore.filesystem_download_fallback', False
+                ):
+                    log.info(
+                        'Attempting filesystem fallback for resource {0}'.
+                        format(resource_id)
+                    )
+                    url = toolkit.url_for(
+                        controller=(
+                            'ckanext.s3filestore.controller'
+                            ':S3Controller'
+                        ),
+                        action='filesystem_resource_download',
+                        id=id,
+                        resource_id=resource_id,
+                        filename=filename
+                    )
                     h.redirect_to(url)
 
                 abort(404, _('Resource data not found'))
@@ -102,8 +134,12 @@ class S3Controller(base.BaseController):
         Provide a direct download by either redirecting the user to the url
         stored or downloading an uploaded file directly.
         """
-        context = {'model': model, 'session': model.Session,
-                   'user': c.user or c.author, 'auth_user_obj': c.userobj}
+        context = {
+            'model': model,
+            'session': model.Session,
+            'user': c.user or c.author,
+            'auth_user_obj': c.userobj
+        }
 
         try:
             rsc = get_action('resource_show')(context, {'id': resource_id})
@@ -122,8 +158,9 @@ class S3Controller(base.BaseController):
             except OSError:
                 abort(404, _('Resource data not found'))
             response.headers.update(dict(headers))
-            content_type, content_enc = mimetypes.guess_type(rsc.get('url',
-                                                                     ''))
+            content_type, content_enc = mimetypes.guess_type(
+                rsc.get('url', '')
+            )
             if content_type:
                 response.headers['Content-Type'] = content_type
             response.status = status
