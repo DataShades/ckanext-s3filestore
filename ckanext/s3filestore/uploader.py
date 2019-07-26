@@ -16,7 +16,7 @@ if toolkit.check_ckan_version(min_version='2.7.0'):
     from werkzeug.datastructures import FileStorage as FlaskFileStorage
     ALLOWED_UPLOAD_TYPES = (cgi.FieldStorage, FlaskFileStorage)
 else:
-ALLOWED_UPLOAD_TYPES = (cgi.FieldStorage)
+    ALLOWED_UPLOAD_TYPES = (cgi.FieldStorage)
 
 config = pylons.config
 log = logging.getLogger(__name__)
