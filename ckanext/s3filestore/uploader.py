@@ -29,7 +29,7 @@ _max_image_size = None
 def _get_underlying_file(wrapper):
     if isinstance(wrapper, FlaskFileStorage):
         return wrapper.stream
-return wrapper.file
+    return wrapper.file
 
 
 class S3FileStoreException(Exception):
